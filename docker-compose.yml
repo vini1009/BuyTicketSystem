@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # 1. O nosso banco em memória
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379" # Expõe o Redis para você inspecionar pelo Windows, se quiser
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: gateway_db
+    restart: always
+    environment:
+      - POSTGRES_USER=systemadmin
+      - POSTGRES_PASSWORD=systempassword
+      - POSTGRES_DB=tickets_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. A nossa API Gateway
+  api:
+    build: . # Manda o Docker ler o Dockerfile desta pasta
+    ports:
+      - "3000:3000" # Conecta a porta 3000 do container com a do seu PC
+    depends_on:
+      - redis # O Node só liga DEPOIS que o Redis estiver pronto
+      - postgres
+    restart: always
+    # Isso mapeia seus arquivos em tempo real. Se você mudar o código, não precisa recriar a imagem toda vez
+    volumes: 
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  pgdata: # Volume para persistir os dados do Postgres

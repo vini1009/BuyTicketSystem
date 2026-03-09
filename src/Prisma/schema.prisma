@@ -1,0 +1,63 @@
+// O gerador do código Node.js
+generator client {
+  provider = "prisma-client-js"
+}
+
+// A conexão com o seu PostgreSQL no Docker
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- AS SUAS TABELAS ---
+
+// 1. Tabela de Eventos
+model Event {
+  id          String   @id @default(uuid())
+  name        String
+  totalSeats  Int      // Quantidade total de ingressos disponíveis
+  date        DateTime
+
+  // Relacionamento: Um evento tem VÁRIOS ingressos (1 para N)
+  tickets     Ticket[] 
+
+  @@map("events")
+}
+
+// 2. Tabela de Ingressos (O Estoque Físico/Virtual)
+model Ticket {
+  id          String   @id @default(uuid())
+  seat        String   // Ex: "Cadeira A42"
+  price       Float
+  status      TicketStatus @default(AVAILABLE) // Enum para controlar o estado da máquina
+  
+  // Relacionamentos
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id])
+  
+  transactions Transaction[]
+
+  @@map("tickets")
+}
+
+// 3. Tabela de Transações (Onde a Idempotência brilha)
+model Transaction {
+  id              String   @id @default(uuid())
+  idempotencyKey  String   @unique // Garante no banco que a mesma chave NUNCA será salva duas vezes
+  amount          Float
+  status          String   // "APPROVED", "FAILED", "REFUNDED"
+  createdAt       DateTime @default(now())
+
+  // Relacionamentos
+  ticketId        String
+  ticket          Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@map("transactions")
+}
+
+// Enums são perfeitos no PostgreSQL para forçar que o status seja APENAS um desses três
+enum TicketStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
