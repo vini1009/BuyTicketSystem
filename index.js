@@ -1,6 +1,6 @@
 // index.js
-const Fastify = require('fastify');
-const Redis = require('ioredis');
+import Fastify from 'fastify';
+import Redis from 'ioredis';
 
 const fastify = Fastify({ logger: true });
 
